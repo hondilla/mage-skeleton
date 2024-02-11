@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  apache:
+    ports:
+    - "80:80"
+  php:
+    ports:
+    - "8000:8000"
+  mysql:
+    ports:
+    - "3306:3306"
+  dragonfly:
+    ports:
+    - "6379:6379"
+  mailpit:
+    ports:
+    - "1025:1025"
+    - "8025:8025"

@@ -1,0 +1,99 @@
+version: '3.8'
+services:
+  apache:
+    container_name: ${COMPOSE_PROJECT_NAME}-apache
+    image: ${COMPOSE_PROJECT_NAME}-apache
+    build:
+      context: "apache"
+      args:
+        UID: ${UID}
+        GID: ${GID}
+    depends_on:
+    - php
+    networks:
+      docker:
+        aliases:
+        - ${COMPOSE_PROJECT_NAME}.localhost
+    volumes:
+    - php-fpm-socket:/var/run/php
+    - ../:/app
+
+  php:
+    container_name: ${COMPOSE_PROJECT_NAME}-php
+    environment:
+    - XDEBUG_MODE=coverage,debug
+    - PHP_IDE_CONFIG=serverName=${COMPOSE_PROJECT_NAME}
+    image: ${COMPOSE_PROJECT_NAME}-php
+    build:
+      context: "php"
+      args:
+        UID: ${UID}
+        GID: ${GID}
+    networks:
+    - docker
+    volumes:
+    - mysql-socket:/var/run/mysqld
+    - php-fpm-socket:/var/run/php
+    - dragonfly-socket:/var/run/dragonfly
+    - ../:/app
+    - ~/.config/composer/auth.json:/home/app/.composer/auth.json
+    - ~/.ssh/:/home/app/.ssh:ro
+
+  mysql:
+    container_name: ${COMPOSE_PROJECT_NAME}-mysql
+    image: ${COMPOSE_PROJECT_NAME}-mysql
+    environment:
+    - MYSQL_ROOT_PASSWORD=root
+    - MYSQL_DATABASE=${COMPOSE_PROJECT_NAME}
+    build:
+      context: "mysql"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    networks:
+      docker:
+        aliases:
+        - mysql.localhost
+    volumes:
+    - mysql:/var/lib/mysql
+    - mysql-socket:/var/run/mysqld
+
+  dragonfly:
+    container_name: ${COMPOSE_PROJECT_NAME}-dragonfly
+    image: ${COMPOSE_PROJECT_NAME}-dragonfly
+    build:
+      context: "dragonfly"
+    ulimits:
+      memlock: -1
+    command: [
+      --unixsocket=/var/run/dragonfly/dragonfly.sock,
+      --unixsocketperm=0677
+    ]
+    networks:
+      docker:
+        aliases:
+        - dragonfly.localhost
+    volumes:
+    - dragonfly:/data
+    - dragonfly-socket:/var/run/dragonfly
+
+  mailpit:
+    container_name: ${COMPOSE_PROJECT_NAME}-mailpit
+    image: ${COMPOSE_PROJECT_NAME}-mailpit
+    build:
+      context: "mailpit"
+    environment:
+    - TZ=Europe/Madrid
+    networks:
+      docker:
+        aliases:
+        - mailpit.localhost
+
+volumes:
+  php-fpm-socket:
+  mysql:
+  mysql-socket:
+  dragonfly:
+  dragonfly-socket:
+
+networks:
+  docker:
+    name: ${COMPOSE_PROJECT_NAME}-network
